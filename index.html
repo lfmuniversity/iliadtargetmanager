@@ -3,255 +3,1007 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111111" />
   <title>LFM Target Cards</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{
-      --bg:#f5f5f7;--card:#fff;--ink:#151515;--muted:#777;--line:#e5e5e7;
-      --sim:#ddefd2;--fibra:#dfe6f7;--b2b:#dfb8f6;--green:#25d366;
+      --bg:#f3f4f6;
+      --surface:#ffffff;
+      --surface-2:#f8f8fa;
+      --ink:#111111;
+      --muted:#75757d;
+      --line:#e7e7eb;
+      --sim:#dff2d4;
+      --fibra:#e2e8f7;
+      --b2b:#ead7f7;
+      --green:#25d366;
+      --danger:#b42318;
+      --shadow:0 16px 40px rgba(17,17,17,.08);
+      --radius:22px;
     }
+
     *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
-    header{background:#111;color:#fff;padding:22px}
-    .wrap{max-width:1200px;margin:auto;padding:22px}
-    header .wrap{padding:0}
-    h1{margin:0;font-size:25px}
-    header p{margin:7px 0 0;color:#cfcfd4}
-    .panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
-    .drop{border:2px dashed #b6b6bd;border-radius:16px;padding:34px;text-align:center;cursor:pointer;transition:.2s}
-    .drop.drag{border-color:#111;background:#fafafa}
-    .drop strong{display:block;font-size:18px;margin-bottom:8px}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(17,17,17,.05), transparent 28%),
+        var(--bg);
+      color:var(--ink);
+    }
+
+    button,input,select{font:inherit}
+
+    .shell{
+      max-width:1320px;
+      margin:0 auto;
+      padding:24px;
+    }
+
+    .hero{
+      background:#111;
+      color:#fff;
+      border-radius:28px;
+      padding:28px;
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:24px;
+      align-items:end;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero:after{
+      content:"";
+      position:absolute;
+      width:320px;height:320px;
+      border-radius:50%;
+      right:-100px;top:-150px;
+      background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0));
+    }
+
+    .brand{
+      position:relative;
+      z-index:1;
+    }
+
+    .eyebrow{
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      font-size:12px;
+      font-weight:800;
+      color:#bdbdc4;
+      margin-bottom:14px;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size:clamp(34px,5vw,58px);
+      line-height:.98;
+      letter-spacing:-.045em;
+      max-width:760px;
+    }
+
+    .hero p{
+      margin:18px 0 0;
+      color:#c9c9cf;
+      max-width:690px;
+      line-height:1.55;
+      font-size:16px;
+    }
+
+    .hero-meta{
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+
+    .meta-chip{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:18px;
+      padding:16px;
+      backdrop-filter:blur(8px);
+    }
+
+    .meta-chip span{
+      display:block;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#a7a7ad;
+      font-weight:800;
+    }
+
+    .meta-chip strong{
+      display:block;
+      margin-top:8px;
+      font-size:18px;
+      line-height:1.2;
+    }
+
+    .content{
+      display:grid;
+      grid-template-columns:370px 1fr;
+      gap:22px;
+      margin-top:22px;
+      align-items:start;
+    }
+
+    .sidebar{
+      position:sticky;
+      top:18px;
+    }
+
+    .panel{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .upload-panel{padding:20px}
+
+    .panel-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:16px;
+    }
+
+    .panel-title h2{
+      margin:0;
+      font-size:20px;
+      letter-spacing:-.02em;
+    }
+
+    .step{
+      width:34px;height:34px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:#111;
+      color:#fff;
+      font-weight:900;
+      font-size:14px;
+      flex:0 0 auto;
+    }
+
+    .drop{
+      display:block;
+      border:1.5px dashed #c9c9cf;
+      border-radius:18px;
+      padding:26px 18px;
+      text-align:center;
+      cursor:pointer;
+      background:var(--surface-2);
+      transition:.2s ease;
+    }
+
+    .drop:hover,.drop.drag{
+      border-color:#111;
+      background:#fff;
+      transform:translateY(-1px);
+    }
+
+    .upload-icon{
+      width:58px;height:58px;
+      border-radius:18px;
+      margin:0 auto 16px;
+      background:#111;
+      color:#fff;
+      display:grid;
+      place-items:center;
+      font-size:24px;
+      box-shadow:0 10px 24px rgba(17,17,17,.18);
+    }
+
+    .drop strong{
+      display:block;
+      font-size:17px;
+      margin-bottom:7px;
+    }
+
+    .drop span{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.45;
+    }
+
     .drop input{display:none}
-    .btn{border:0;border-radius:11px;padding:12px 16px;font-weight:800;cursor:pointer;background:#111;color:#fff}
-    .btn.light{background:#fff;color:#111;border:1px solid var(--line)}
-    .btn.wa{background:var(--green);color:#071e0f}
-    .meta{margin-top:14px;color:var(--muted);font-size:14px}
-    .toolbar{display:none;gap:10px;align-items:center;flex-wrap:wrap;margin:20px 0}
-    .toolbar.show{display:flex}
-    input[type=search],select{padding:12px 14px;border:1px solid #ccc;border-radius:10px;background:#fff;font-size:15px}
-    input[type=search]{flex:1;min-width:260px}
-    .counter{font-weight:800}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
-    .card{background:#fff;border:1px solid #eee;border-radius:18px;overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.07)}
-    .head{padding:18px 20px 14px;border-bottom:1px solid #eee}
-    .area{font-size:12px;color:#777;font-weight:800;letter-spacing:.08em}
-    .head h2{font-size:20px;margin:6px 0 0}
-    .row{display:grid;grid-template-columns:1fr 75px 115px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.05)}
-    .row.sim{background:var(--sim)}.row.fibra{background:var(--fibra)}.row.b2b{background:var(--b2b)}
-    .label{font-weight:900}.target{text-align:center;font-size:25px;font-weight:900}.premio{text-align:right;font-size:18px;font-weight:800}
-    .actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
-    .actions .full{grid-column:1/-1}
-    .note{margin-top:18px;font-size:13px;color:#696970;line-height:1.5}
-    .toast{position:fixed;right:20px;bottom:20px;background:#111;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none}
+
+    .file-status{
+      margin-top:14px;
+      border:1px solid var(--line);
+      border-radius:15px;
+      padding:14px;
+      background:#fff;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+
+    .status-dot{
+      width:10px;height:10px;
+      margin-top:4px;
+      border-radius:50%;
+      background:#b7b7bd;
+      flex:0 0 auto;
+    }
+
+    .status-dot.ok{background:#16a34a}
+    .status-dot.error{background:var(--danger)}
+
+    .status-copy strong{
+      display:block;
+      font-size:14px;
+      margin-bottom:4px;
+    }
+
+    .status-copy span{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      word-break:break-word;
+    }
+
+    .privacy{
+      margin-top:16px;
+      padding-top:16px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .workspace{min-width:0}
+
+    .toolbar-panel{
+      padding:18px;
+      margin-bottom:18px;
+    }
+
+    .toolbar-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:14px;
+    }
+
+    .toolbar-top h2{
+      margin:0;
+      font-size:22px;
+      letter-spacing:-.025em;
+    }
+
+    .counter{
+      background:#111;
+      color:#fff;
+      padding:8px 11px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .controls{
+      display:grid;
+      grid-template-columns:1fr 200px;
+      gap:10px;
+    }
+
+    .control{
+      position:relative;
+    }
+
+    .control input,.control select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:13px 14px;
+      outline:none;
+      color:var(--ink);
+    }
+
+    .control input:focus,.control select:focus{
+      border-color:#111;
+      box-shadow:0 0 0 3px rgba(17,17,17,.08);
+    }
+
+    .empty{
+      min-height:420px;
+      display:grid;
+      place-items:center;
+      padding:40px;
+      text-align:center;
+    }
+
+    .empty-icon{
+      width:74px;height:74px;
+      border-radius:22px;
+      display:grid;
+      place-items:center;
+      margin:0 auto 18px;
+      background:#111;
+      color:#fff;
+      font-size:30px;
+    }
+
+    .empty h3{
+      margin:0;
+      font-size:24px;
+      letter-spacing:-.03em;
+    }
+
+    .empty p{
+      margin:10px auto 0;
+      color:var(--muted);
+      max-width:470px;
+      line-height:1.55;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+      gap:18px;
+    }
+
+    .card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:0 10px 26px rgba(17,17,17,.06);
+      transition:.18s ease;
+    }
+
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 18px 34px rgba(17,17,17,.09);
+    }
+
+    .card-head{
+      padding:20px 20px 17px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+    }
+
+    .store-meta{min-width:0}
+
+    .area-tag{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 9px;
+      border-radius:999px;
+      background:#f0f0f2;
+      color:#65656c;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.07em;
+      text-transform:uppercase;
+    }
+
+    .card h3{
+      margin:10px 0 0;
+      font-size:22px;
+      line-height:1.12;
+      letter-spacing:-.025em;
+      word-break:break-word;
+    }
+
+    .service-list{
+      padding:0 12px 12px;
+      display:grid;
+      gap:8px;
+    }
+
+    .service-row{
+      display:grid;
+      grid-template-columns:1fr 88px 120px;
+      align-items:center;
+      padding:14px 14px;
+      border-radius:15px;
+    }
+
+    .service-row.sim{background:var(--sim)}
+    .service-row.fibra{background:var(--fibra)}
+    .service-row.b2b{background:var(--b2b)}
+
+    .service-name{
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.05em;
+    }
+
+    .service-target{
+      text-align:center;
+      font-size:28px;
+      font-weight:950;
+      letter-spacing:-.03em;
+    }
+
+    .service-reward{
+      text-align:right;
+      font-size:17px;
+      font-weight:900;
+    }
+
+    .card-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      padding:14px;
+      border-top:1px solid var(--line);
+      background:#fbfbfc;
+    }
+
+    .btn{
+      border:0;
+      border-radius:13px;
+      padding:13px 14px;
+      font-weight:900;
+      cursor:pointer;
+      transition:.16s ease;
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{background:#111;color:#fff}
+    .btn.whatsapp{background:var(--green);color:#063d1a}
+    .btn:disabled{opacity:.55;cursor:default;transform:none}
+
+    .toast{
+      position:fixed;
+      right:24px;
+      bottom:24px;
+      background:#111;
+      color:#fff;
+      padding:13px 16px;
+      border-radius:13px;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+      opacity:0;
+      transform:translateY(12px);
+      transition:.2s;
+      pointer-events:none;
+      z-index:20;
+      max-width:340px;
+      font-size:14px;
+      font-weight:700;
+    }
+
     .toast.show{opacity:1;transform:none}
-    @media(max-width:600px){.wrap{padding:15px}.actions{grid-template-columns:1fr}.actions .full{grid-column:auto}}
+
+    @media(max-width:980px){
+      .hero{grid-template-columns:1fr}
+      .content{grid-template-columns:1fr}
+      .sidebar{position:static}
+    }
+
+    @media(max-width:650px){
+      .shell{padding:14px}
+      .hero{padding:22px;border-radius:22px}
+      .hero-meta{grid-template-columns:1fr 1fr}
+      .controls{grid-template-columns:1fr}
+      .grid{grid-template-columns:1fr}
+      .service-row{grid-template-columns:1fr 66px 102px}
+      .card-actions{grid-template-columns:1fr}
+      .hero h1{font-size:38px}
+    }
   </style>
 </head>
+
 <body>
-<header>
-  <div class="wrap">
-    <h1>LFM Target Cards</h1>
-    <p>Carica l’Excel, cerca il presidio e condividi la card.</p>
+  <div class="shell">
+    <section class="hero">
+      <div class="brand">
+        <div class="eyebrow">LFM · Field Operations</div>
+        <h1>Target giornalieri, pronti da condividere.</h1>
+        <p>Carica il file Excel, cerca il punto vendita e genera una card pulita da inviare in pochi secondi.</p>
+      </div>
+
+      <div class="hero-meta">
+        <div class="meta-chip">
+          <span>Presidi caricati</span>
+          <strong id="heroCount">0</strong>
+        </div>
+        <div class="meta-chip">
+          <span>Ultimo aggiornamento</span>
+          <strong id="heroTime">—</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="content">
+      <aside class="sidebar">
+        <section class="panel upload-panel">
+          <div class="panel-title">
+            <h2>Carica il file</h2>
+            <div class="step">1</div>
+          </div>
+
+          <label class="drop" id="drop">
+            <div class="upload-icon">↑</div>
+            <strong>Trascina qui l’Excel</strong>
+            <span>oppure clicca per selezionare il file dal computer</span>
+            <input id="file" type="file" accept=".xlsx,.xlsm,.xls" />
+          </label>
+
+          <div class="file-status">
+            <div class="status-dot" id="statusDot"></div>
+            <div class="status-copy">
+              <strong id="statusTitle">Nessun file caricato</strong>
+              <span id="statusText">Seleziona il file giornaliero per generare le card.</span>
+            </div>
+          </div>
+
+          <div class="privacy">
+            Il file viene elaborato soltanto nel browser. Nessun dato viene caricato online o salvato sul sito.
+          </div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="panel toolbar-panel" id="toolbarPanel" style="display:none">
+          <div class="toolbar-top">
+            <h2>Presidi disponibili</h2>
+            <div class="counter" id="count">0 presidi</div>
+          </div>
+
+          <div class="controls">
+            <div class="control">
+              <input id="search" type="search" placeholder="Cerca punto vendita…" />
+            </div>
+            <div class="control">
+              <select id="area">
+                <option value="">Tutte le aree</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel empty" id="emptyState">
+          <div>
+            <div class="empty-icon">↗</div>
+            <h3>Carica l’Excel per iniziare</h3>
+            <p>Le card verranno generate automaticamente e potrai cercare il presidio, copiare l’immagine o condividerla.</p>
+          </div>
+        </section>
+
+        <section class="grid" id="grid"></section>
+      </main>
+    </div>
   </div>
-</header>
 
-<main class="wrap">
-  <section class="panel">
-    <label class="drop" id="drop">
-      <strong>Trascina qui il file Excel</strong>
-      <span>oppure clicca per selezionarlo</span>
-      <input id="file" type="file" accept=".xlsx,.xlsm,.xls" />
-    </label>
-    <div class="meta" id="meta">Il file viene letto soltanto nel browser e non viene caricato online.</div>
-  </section>
-
-  <div class="toolbar" id="toolbar">
-    <input id="search" type="search" placeholder="Cerca punto vendita…" />
-    <select id="area"><option value="">Tutte le aree</option></select>
-    <span class="counter" id="count"></span>
-  </div>
-
-  <section class="grid" id="grid"></section>
-
-  <p class="note">
-    “Condividi” usa il menu di condivisione del telefono: su smartphone puoi scegliere WhatsApp e poi il gruppo.
-    Da desktop, se la condivisione file non è disponibile, la card viene copiata o scaricata.
-  </p>
-</main>
-
-<div class="toast" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
 <script>
 let STORES = [];
+
 const fileInput = document.getElementById('file');
 const drop = document.getElementById('drop');
 const grid = document.getElementById('grid');
-const toolbar = document.getElementById('toolbar');
+const toolbarPanel = document.getElementById('toolbarPanel');
+const emptyState = document.getElementById('emptyState');
 const areaSelect = document.getElementById('area');
 const searchInput = document.getElementById('search');
 const count = document.getElementById('count');
-const meta = document.getElementById('meta');
+const heroCount = document.getElementById('heroCount');
+const heroTime = document.getElementById('heroTime');
+const statusDot = document.getElementById('statusDot');
+const statusTitle = document.getElementById('statusTitle');
+const statusText = document.getElementById('statusText');
 const toast = document.getElementById('toast');
 
-['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('drag')}));
-['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('drag')}));
-drop.addEventListener('drop', e => {
-  const f = e.dataTransfer.files[0];
-  if (f) loadFile(f);
+['dragenter','dragover'].forEach(evt => {
+  drop.addEventListener(evt, e => {
+    e.preventDefault();
+    drop.classList.add('drag');
+  });
 });
-fileInput.addEventListener('change', () => fileInput.files[0] && loadFile(fileInput.files[0]));
+
+['dragleave','drop'].forEach(evt => {
+  drop.addEventListener(evt, e => {
+    e.preventDefault();
+    drop.classList.remove('drag');
+  });
+});
+
+drop.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if(file) loadFile(file);
+});
+
+fileInput.addEventListener('click', () => {
+  fileInput.value = '';
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if(file) loadFile(file);
+});
+
 searchInput.addEventListener('input', filterCards);
 areaSelect.addEventListener('change', filterCards);
 
-function norm(v){ return String(v ?? '').trim(); }
-function serviceName(v){
-  const s = norm(v).toLowerCase().replace('target','').trim();
-  if(s.includes('fibra')) return 'fibra';
-  if(s.includes('b2b')) return 'b2b';
-  if(s.includes('sim')) return 'sim';
+function normalize(value){
+  return String(value ?? '').trim();
+}
+
+function serviceName(value){
+  const text = normalize(value).toLowerCase().replace('target','').trim();
+  if(text.includes('fibra')) return 'fibra';
+  if(text.includes('b2b')) return 'b2b';
+  if(text.includes('sim')) return 'sim';
   return null;
 }
-function num(v){
-  if(v === null || v === undefined || v === '') return '-';
-  const n = Number(String(v).replace(',','.'));
-  return Number.isFinite(n) ? (Number.isInteger(n) ? n : n) : v;
+
+function parseNumber(value){
+  if(value === null || value === undefined || value === '') return '-';
+  const number = Number(String(value).replace(',','.'));
+  return Number.isFinite(number) ? number : value;
 }
-function money(v){
-  const n = Number(String(v ?? 0).replace(',','.'));
-  return Number.isFinite(n) ? n : 0;
+
+function parseMoney(value){
+  const number = Number(String(value ?? 0).replace(',','.'));
+  return Number.isFinite(number) ? number : 0;
 }
+
 function findHeader(rows){
-  for(let i=0;i<Math.min(rows.length,12);i++){
-    const cells=rows[i].map(x=>norm(x).toLowerCase());
-    if(cells.some(x=>x==='pdv'||x.includes('punto vendita')) && cells.some(x=>x.includes('servizio'))) return i;
+  for(let index = 0; index < Math.min(rows.length, 15); index++){
+    const cells = rows[index].map(x => normalize(x).toLowerCase());
+    const hasPdv = cells.some(x => x === 'pdv' || x.includes('punto vendita'));
+    const hasService = cells.some(x => x.includes('servizio'));
+    if(hasPdv && hasService) return index;
   }
   return 2;
 }
+
+function resetBeforeLoad(){
+  STORES = [];
+  grid.innerHTML = '';
+  toolbarPanel.style.display = 'none';
+  emptyState.style.display = 'grid';
+  heroCount.textContent = '0';
+  heroTime.textContent = '—';
+  statusDot.className = 'status-dot';
+  statusTitle.textContent = 'Lettura del file…';
+  statusText.textContent = 'Sto elaborando i dati e generando le card.';
+}
+
 async function loadFile(file){
+  resetBeforeLoad();
+
   try{
-    meta.textContent='Lettura del file in corso…';
     const data = await file.arrayBuffer();
-    const wb = XLSX.read(data,{type:'array'});
+    const workbook = XLSX.read(data,{type:'array'});
     const stores = new Map();
 
-    wb.SheetNames.forEach(sheetName=>{
-      const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
-      if(!rows.length) return;
-      const hi = findHeader(rows);
-      const headers = rows[hi].map(x=>norm(x).toLowerCase());
-      const pdvI = headers.findIndex(x=>x==='pdv'||x.includes('punto vendita'));
-      const servI = headers.findIndex(x=>x.includes('servizio'));
-      const targetI = headers.findIndex(x=>x.includes('target giornaliero'));
-      const premioI = headers.findIndex(x=>x.includes('premio giornaliero'));
-      if(pdvI<0 || servI<0 || targetI<0 || premioI<0) return;
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet,{
+        header:1,
+        defval:null,
+        raw:true
+      });
 
-      rows.slice(hi+1).forEach(r=>{
-        const pdv=norm(r[pdvI]), service=serviceName(r[servI]);
-        if(!pdv || !service) return;
-        if(!stores.has(pdv)) stores.set(pdv,{name:pdv,area:sheetName.toUpperCase(),items:{}});
-        stores.get(pdv).items[service]={target:num(r[targetI]),premio:money(r[premioI])};
+      if(!rows.length) return;
+
+      const headerIndex = findHeader(rows);
+      const headers = rows[headerIndex].map(x => normalize(x).toLowerCase());
+
+      const pdvIndex = headers.findIndex(x => x === 'pdv' || x.includes('punto vendita'));
+      const serviceIndex = headers.findIndex(x => x.includes('servizio'));
+      const targetIndex = headers.findIndex(x => x.includes('target giornaliero'));
+      const rewardIndex = headers.findIndex(x => x.includes('premio giornaliero'));
+
+      if(pdvIndex < 0 || serviceIndex < 0 || targetIndex < 0 || rewardIndex < 0) return;
+
+      rows.slice(headerIndex + 1).forEach(row => {
+        const name = normalize(row[pdvIndex]);
+        const service = serviceName(row[serviceIndex]);
+
+        if(!name || !service) return;
+
+        if(!stores.has(name)){
+          stores.set(name,{
+            name,
+            area:sheetName.toUpperCase(),
+            items:{}
+          });
+        }
+
+        stores.get(name).items[service] = {
+          target:parseNumber(row[targetIndex]),
+          premio:parseMoney(row[rewardIndex])
+        };
       });
     });
 
-    STORES=[...stores.values()].map(s=>{
-      ['sim','fibra','b2b'].forEach(k=>s.items[k] ??= {target:'-',premio:0});
-      return s;
-    }).sort((a,b)=>a.area.localeCompare(b.area)||a.name.localeCompare(b.name));
+    STORES = [...stores.values()]
+      .map(store => {
+        ['sim','fibra','b2b'].forEach(key => {
+          if(!store.items[key]) store.items[key] = {target:'-',premio:0};
+        });
+        return store;
+      })
+      .sort((a,b) =>
+        a.area.localeCompare(b.area) ||
+        a.name.localeCompare(b.name)
+      );
 
-    if(!STORES.length) throw new Error('Non ho trovato le colonne PDV, Servizio, Target Giornaliero e Premio Giornaliero.');
+    if(!STORES.length){
+      throw new Error('Non ho trovato le colonne necessarie nel file.');
+    }
 
-    meta.textContent=`${file.name} · ${STORES.length} presidi caricati · ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`;
+    const now = new Date();
+    const time = now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+
+    heroCount.textContent = STORES.length;
+    heroTime.textContent = time;
+    statusDot.className = 'status-dot ok';
+    statusTitle.textContent = 'File caricato correttamente';
+    statusText.textContent = `${file.name} · ${STORES.length} presidi · aggiornato alle ${time}`;
+
     populateAreas();
-    toolbar.classList.add('show');
+    toolbarPanel.style.display = 'block';
+    emptyState.style.display = 'none';
     render();
-  }catch(err){
-    STORES=[];
-    grid.innerHTML='';
-    toolbar.classList.remove('show');
-    meta.textContent='Errore: '+err.message;
+  }catch(error){
+    statusDot.className = 'status-dot error';
+    statusTitle.textContent = 'Errore durante la lettura';
+    statusText.textContent = error.message;
   }
 }
+
 function populateAreas(){
-  const areas=[...new Set(STORES.map(s=>s.area))].sort();
-  areaSelect.innerHTML='<option value="">Tutte le aree</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
+  const areas = [...new Set(STORES.map(store => store.area))].sort();
+  areaSelect.innerHTML =
+    '<option value="">Tutte le aree</option>' +
+    areas.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('');
 }
-function euro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(v)}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+function euro(value){
+  return new Intl.NumberFormat('it-IT',{
+    style:'currency',
+    currency:'EUR'
+  }).format(value);
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  }[char]));
+}
+
 function render(){
-  grid.innerHTML=STORES.map((s,i)=>`
-    <article class="card" data-name="${esc(s.name.toLowerCase())}" data-area="${esc(s.area)}">
-      <div class="head"><div class="area">${esc(s.area)}</div><h2>${esc(s.name)}</h2></div>
-      ${row('SIM',s.items.sim,'sim')}
-      ${row('FIBRA',s.items.fibra,'fibra')}
-      ${row('B2B',s.items.b2b,'b2b')}
-      <div class="actions">
-        <button class="btn" onclick="copyCard(${i},this)">Copia immagine</button>
-        <button class="btn wa" onclick="shareCard(${i},this)">Condividi</button>
+  grid.innerHTML = STORES.map((store,index) => `
+    <article class="card"
+      data-name="${escapeHtml(store.name.toLowerCase())}"
+      data-area="${escapeHtml(store.area)}">
+
+      <div class="card-head">
+        <div class="store-meta">
+          <span class="area-tag">${escapeHtml(store.area)}</span>
+          <h3>${escapeHtml(store.name)}</h3>
+        </div>
       </div>
-    </article>`).join('');
+
+      <div class="service-list">
+        ${serviceRow('SIM',store.items.sim,'sim')}
+        ${serviceRow('FIBRA',store.items.fibra,'fibra')}
+        ${serviceRow('B2B',store.items.b2b,'b2b')}
+      </div>
+
+      <div class="card-actions">
+        <button class="btn primary" onclick="copyCard(${index},this)">Copia immagine</button>
+        <button class="btn whatsapp" onclick="shareCard(${index},this)">Condividi</button>
+      </div>
+    </article>
+  `).join('');
+
   filterCards();
 }
-function row(label,item,cls){
-  return `<div class="row ${cls}"><span class="label">${label}</span><span class="target">${esc(item.target)}</span><span class="premio">${euro(item.premio)}</span></div>`;
+
+function serviceRow(label,item,className){
+  return `
+    <div class="service-row ${className}">
+      <span class="service-name">${label}</span>
+      <span class="service-target">${escapeHtml(item.target)}</span>
+      <span class="service-reward">${euro(item.premio)}</span>
+    </div>
+  `;
 }
+
 function filterCards(){
-  const q=searchInput.value.toLowerCase().trim(), area=areaSelect.value;
-  let n=0;
-  [...grid.children].forEach(c=>{
-    const ok=c.dataset.name.includes(q)&&(!area||c.dataset.area===area);
-    c.style.display=ok?'block':'none'; if(ok)n++;
+  const query = searchInput.value.toLowerCase().trim();
+  const selectedArea = areaSelect.value;
+  let visible = 0;
+
+  [...grid.children].forEach(card => {
+    const matches =
+      card.dataset.name.includes(query) &&
+      (!selectedArea || card.dataset.area === selectedArea);
+
+    card.style.display = matches ? 'block' : 'none';
+    if(matches) visible++;
   });
-  count.textContent=n+' presidi';
+
+  count.textContent = `${visible} ${visible === 1 ? 'presidio' : 'presidi'}`;
 }
-function rr(ctx,x,y,w,h,r){
-  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+
+function roundedRect(ctx,x,y,width,height,radius){
+  ctx.beginPath();
+  ctx.moveTo(x + radius,y);
+  ctx.arcTo(x + width,y,x + width,y + height,radius);
+  ctx.arcTo(x + width,y + height,x,y + height,radius);
+  ctx.arcTo(x,y + height,x,y,radius);
+  ctx.arcTo(x,y,x + width,y,radius);
+  ctx.closePath();
 }
-function fit(ctx,text,max,start,min){
-  for(let s=start;s>=min;s-=2){ctx.font=`700 ${s}px Arial`;if(ctx.measureText(text).width<=max)return s}return min;
+
+function fitText(ctx,text,maxWidth,startSize,minSize){
+  for(let size = startSize; size >= minSize; size -= 2){
+    ctx.font = `800 ${size}px Arial`;
+    if(ctx.measureText(text).width <= maxWidth) return size;
+  }
+  return minSize;
 }
-function makeCanvas(s){
-  const scale=2,W=720,H=780,c=document.createElement('canvas');c.width=W*scale;c.height=H*scale;
-  const x=c.getContext('2d');x.scale(scale,scale);x.fillStyle='#f2f2f4';x.fillRect(0,0,W,H);
-  x.shadowColor='rgba(0,0,0,.16)';x.shadowBlur=24;x.shadowOffsetY=8;rr(x,45,45,630,690,28);x.fillStyle='#fff';x.fill();x.shadowColor='transparent';
-  x.fillStyle='#111';x.font='700 23px Arial';x.fillText('TARGET GIORNALIERO',85,105);
-  x.fillStyle='#777';x.font='700 17px Arial';x.fillText(s.area,85,143);
-  x.fillStyle='#111';const fs=fit(x,s.name,550,34,22);x.font=`700 ${fs}px Arial`;x.fillText(s.name,85,195);
-  const rows=[['SIM',s.items.sim,'#ddefd2'],['FIBRA',s.items.fibra,'#dfe6f7'],['B2B',s.items.b2b,'#dfb8f6']];
-  rows.forEach((r,i)=>{
-    const y=245+i*135;rr(x,85,y,550,105,18);x.fillStyle=r[2];x.fill();
-    x.fillStyle='#111';x.font='800 25px Arial';x.fillText(r[0],115,y+62);
-    x.textAlign='center';x.font='900 44px Arial';x.fillText(String(r[1].target),390,y+69);
-    x.textAlign='right';x.font='800 27px Arial';x.fillText(euro(r[1].premio),605,y+65);x.textAlign='left';
+
+function makeCanvas(store){
+  const scale = 2;
+  const W = 720;
+  const H = 780;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale,scale);
+
+  ctx.fillStyle = '#f2f2f4';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.shadowColor = 'rgba(0,0,0,.15)';
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 10;
+
+  roundedRect(ctx,45,45,630,690,30);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+
+  ctx.fillStyle = '#111111';
+  ctx.font = '800 23px Arial';
+  ctx.fillText('TARGET GIORNALIERO',85,104);
+
+  ctx.fillStyle = '#777777';
+  ctx.font = '800 17px Arial';
+  ctx.fillText(store.area,85,141);
+
+  ctx.fillStyle = '#111111';
+  const storeFont = fitText(ctx,store.name,550,34,22);
+  ctx.font = `800 ${storeFont}px Arial`;
+  ctx.fillText(store.name,85,195);
+
+  const rows = [
+    ['SIM',store.items.sim,'#dff2d4'],
+    ['FIBRA',store.items.fibra,'#e2e8f7'],
+    ['B2B',store.items.b2b,'#ead7f7']
+  ];
+
+  rows.forEach((row,index) => {
+    const y = 245 + index * 135;
+
+    roundedRect(ctx,85,y,550,105,18);
+    ctx.fillStyle = row[2];
+    ctx.fill();
+
+    ctx.fillStyle = '#111111';
+    ctx.font = '800 25px Arial';
+    ctx.fillText(row[0],115,y + 63);
+
+    ctx.textAlign = 'center';
+    ctx.font = '900 44px Arial';
+    ctx.fillText(String(row[1].target),390,y + 70);
+
+    ctx.textAlign = 'right';
+    ctx.font = '800 27px Arial';
+    ctx.fillText(euro(row[1].premio),605,y + 66);
+
+    ctx.textAlign = 'left';
   });
-  x.fillStyle='#666';x.font='20px Arial';x.fillText('Target',335,687);x.textAlign='right';x.fillText('Premio',605,687);x.textAlign='left';
-  return c;
+
+  ctx.fillStyle = '#6b6b70';
+  ctx.font = '20px Arial';
+  ctx.fillText('Target',335,687);
+
+  ctx.textAlign = 'right';
+  ctx.fillText('Premio',605,687);
+  ctx.textAlign = 'left';
+
+  return canvas;
 }
-function blobFromCanvas(c){return new Promise(res=>c.toBlob(res,'image/png'))}
-function notify(t){toast.textContent=t;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800)}
-async function copyCard(i,btn){
-  const blob=await blobFromCanvas(makeCanvas(STORES[i]));
-  try{
-    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    const old=btn.textContent;btn.textContent='Copiata ✓';notify('Immagine copiata');setTimeout(()=>btn.textContent=old,1400);
-  }catch(e){downloadBlob(blob,STORES[i].name);notify('Copia non disponibile: PNG scaricato')}
+
+function canvasToBlob(canvas){
+  return new Promise(resolve => canvas.toBlob(resolve,'image/png'));
 }
-async function shareCard(i,btn){
-  const s=STORES[i],blob=await blobFromCanvas(makeCanvas(s));
-  const f=new File([blob],safeName(s.name)+'.png',{type:'image/png'});
+
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'),1800);
+}
+
+async function copyCard(index,button){
+  const blob = await canvasToBlob(makeCanvas(STORES[index]));
+
   try{
-    if(navigator.canShare && navigator.canShare({files:[f]})){
-      await navigator.share({title:'Target '+s.name,text:'Target giornaliero '+s.name,files:[f]});
+    await navigator.clipboard.write([
+      new ClipboardItem({'image/png':blob})
+    ]);
+
+    const original = button.textContent;
+    button.textContent = 'Copiata ✓';
+    showToast('Immagine copiata negli appunti');
+    setTimeout(() => button.textContent = original,1400);
+  }catch(error){
+    downloadBlob(blob,STORES[index].name);
+    showToast('Copia non disponibile: immagine scaricata');
+  }
+}
+
+async function shareCard(index,button){
+  const store = STORES[index];
+  const blob = await canvasToBlob(makeCanvas(store));
+  const file = new File(
+    [blob],
+    `${safeName(store.name)}_target.png`,
+    {type:'image/png'}
+  );
+
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        title:`Target ${store.name}`,
+        text:`Target giornaliero ${store.name}`,
+        files:[file]
+      });
     }else{
-      await copyCard(i,btn);
+      await copyCard(index,button);
       window.open('https://web.whatsapp.com/','_blank');
     }
-  }catch(e){ if(e.name!=='AbortError') notify('Condivisione non disponibile') }
+  }catch(error){
+    if(error.name !== 'AbortError'){
+      showToast('Condivisione non disponibile');
+    }
+  }
 }
-function safeName(s){return s.replace(/[^a-z0-9]+/gi,'_')}
+
+function safeName(value){
+  return value.replace(/[^a-z0-9]+/gi,'_');
+}
+
 function downloadBlob(blob,name){
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safeName(name)+'_target.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  const anchor = document.createElement('a');
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = `${safeName(name)}_target.png`;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(anchor.href),1000);
 }
 </script>
 </body>

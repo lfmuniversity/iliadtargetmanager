@@ -1,8 +1,17 @@
-# LFM Target Cards MVP
+# LFM Target Cards v2
 
-1. Carica `index.html` in un repository GitHub.
-2. Attiva GitHub Pages da Settings → Pages → Deploy from a branch → main / root.
-3. Apri il link pubblico.
-4. Ogni Field carica localmente il proprio Excel e genera le card.
+Versione statica per GitHub Pages.
 
-Il file Excel non viene inviato a un server.
+Funzioni:
+- caricamento locale Excel
+- ricaricamento dello stesso file senza cache
+- ricerca punto vendita
+- filtro area
+- copia immagine
+- condivisione da smartphone
+- fallback WhatsApp Web da desktop
+
+Per pubblicare:
+1. carica index.html nella root del repository
+2. GitHub → Settings → Pages
+3. Deploy from branch → main → /root
