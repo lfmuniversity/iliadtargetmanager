@@ -1,9 +1,12 @@
-# LFM Target Cards V3.1 FIX
+# Iliad Target Manager
 
-Correzione importante:
-- vengono letti soltanto i fogli denominati AREA 1, AREA 2, AREA 3, ecc.
-- viene escluso il foglio riepilogativo AREA
-- il foglio AREA non può più sovrascrivere i target dei fogli operativi
+Versione statica per GitHub Pages.
 
-Sostituisci il vecchio index.html nel repository GitHub.
-La versione corretta mostra il badge "V3.1 FIX".
+Modifiche:
+- nome piattaforma: Iliad Target Manager
+- rimossi riferimenti tecnici a versioni e fix
+- rimossa testata viola
+- mantenuto il parser corretto dei fogli AREA 1, AREA 2, ecc.
+- escluso il foglio riepilogativo AREA
+
+Per aggiornare il sito, sostituisci il vecchio index.html nel repository.
