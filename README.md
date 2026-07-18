@@ -1,17 +1,9 @@
-# LFM Target Cards v2
+# LFM Target Cards V3.1 FIX
 
-Versione statica per GitHub Pages.
+Correzione importante:
+- vengono letti soltanto i fogli denominati AREA 1, AREA 2, AREA 3, ecc.
+- viene escluso il foglio riepilogativo AREA
+- il foglio AREA non può più sovrascrivere i target dei fogli operativi
 
-Funzioni:
-- caricamento locale Excel
-- ricaricamento dello stesso file senza cache
-- ricerca punto vendita
-- filtro area
-- copia immagine
-- condivisione da smartphone
-- fallback WhatsApp Web da desktop
-
-Per pubblicare:
-1. carica index.html nella root del repository
-2. GitHub → Settings → Pages
-3. Deploy from branch → main → /root
+Sostituisci il vecchio index.html nel repository GitHub.
+La versione corretta mostra il badge "V3.1 FIX".
