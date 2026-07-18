@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LFM Target Cards</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg:#f5f5f7;--card:#fff;--ink:#151515;--muted:#777;--line:#e5e5e7;
+      --sim:#ddefd2;--fibra:#dfe6f7;--b2b:#dfb8f6;--green:#25d366;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+    header{background:#111;color:#fff;padding:22px}
+    .wrap{max-width:1200px;margin:auto;padding:22px}
+    header .wrap{padding:0}
+    h1{margin:0;font-size:25px}
+    header p{margin:7px 0 0;color:#cfcfd4}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
+    .drop{border:2px dashed #b6b6bd;border-radius:16px;padding:34px;text-align:center;cursor:pointer;transition:.2s}
+    .drop.drag{border-color:#111;background:#fafafa}
+    .drop strong{display:block;font-size:18px;margin-bottom:8px}
+    .drop input{display:none}
+    .btn{border:0;border-radius:11px;padding:12px 16px;font-weight:800;cursor:pointer;background:#111;color:#fff}
+    .btn.light{background:#fff;color:#111;border:1px solid var(--line)}
+    .btn.wa{background:var(--green);color:#071e0f}
+    .meta{margin-top:14px;color:var(--muted);font-size:14px}
+    .toolbar{display:none;gap:10px;align-items:center;flex-wrap:wrap;margin:20px 0}
+    .toolbar.show{display:flex}
+    input[type=search],select{padding:12px 14px;border:1px solid #ccc;border-radius:10px;background:#fff;font-size:15px}
+    input[type=search]{flex:1;min-width:260px}
+    .counter{font-weight:800}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+    .card{background:#fff;border:1px solid #eee;border-radius:18px;overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.07)}
+    .head{padding:18px 20px 14px;border-bottom:1px solid #eee}
+    .area{font-size:12px;color:#777;font-weight:800;letter-spacing:.08em}
+    .head h2{font-size:20px;margin:6px 0 0}
+    .row{display:grid;grid-template-columns:1fr 75px 115px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.05)}
+    .row.sim{background:var(--sim)}.row.fibra{background:var(--fibra)}.row.b2b{background:var(--b2b)}
+    .label{font-weight:900}.target{text-align:center;font-size:25px;font-weight:900}.premio{text-align:right;font-size:18px;font-weight:800}
+    .actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .actions .full{grid-column:1/-1}
+    .note{margin-top:18px;font-size:13px;color:#696970;line-height:1.5}
+    .toast{position:fixed;right:20px;bottom:20px;background:#111;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none}
+    .toast.show{opacity:1;transform:none}
+    @media(max-width:600px){.wrap{padding:15px}.actions{grid-template-columns:1fr}.actions .full{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>LFM Target Cards</h1>
+    <p>Carica l’Excel, cerca il presidio e condividi la card.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <label class="drop" id="drop">
+      <strong>Trascina qui il file Excel</strong>
+      <span>oppure clicca per selezionarlo</span>
+      <input id="file" type="file" accept=".xlsx,.xlsm,.xls" />
+    </label>
+    <div class="meta" id="meta">Il file viene letto soltanto nel browser e non viene caricato online.</div>
+  </section>
+
+  <div class="toolbar" id="toolbar">
+    <input id="search" type="search" placeholder="Cerca punto vendita…" />
+    <select id="area"><option value="">Tutte le aree</option></select>
+    <span class="counter" id="count"></span>
+  </div>
+
+  <section class="grid" id="grid"></section>
+
+  <p class="note">
+    “Condividi” usa il menu di condivisione del telefono: su smartphone puoi scegliere WhatsApp e poi il gruppo.
+    Da desktop, se la condivisione file non è disponibile, la card viene copiata o scaricata.
+  </p>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let STORES = [];
+const fileInput = document.getElementById('file');
+const drop = document.getElementById('drop');
+const grid = document.getElementById('grid');
+const toolbar = document.getElementById('toolbar');
+const areaSelect = document.getElementById('area');
+const searchInput = document.getElementById('search');
+const count = document.getElementById('count');
+const meta = document.getElementById('meta');
+const toast = document.getElementById('toast');
+
+['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('drag')}));
+['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('drag')}));
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+fileInput.addEventListener('change', () => fileInput.files[0] && loadFile(fileInput.files[0]));
+searchInput.addEventListener('input', filterCards);
+areaSelect.addEventListener('change', filterCards);
+
+function norm(v){ return String(v ?? '').trim(); }
+function serviceName(v){
+  const s = norm(v).toLowerCase().replace('target','').trim();
+  if(s.includes('fibra')) return 'fibra';
+  if(s.includes('b2b')) return 'b2b';
+  if(s.includes('sim')) return 'sim';
+  return null;
+}
+function num(v){
+  if(v === null || v === undefined || v === '') return '-';
+  const n = Number(String(v).replace(',','.'));
+  return Number.isFinite(n) ? (Number.isInteger(n) ? n : n) : v;
+}
+function money(v){
+  const n = Number(String(v ?? 0).replace(',','.'));
+  return Number.isFinite(n) ? n : 0;
+}
+function findHeader(rows){
+  for(let i=0;i<Math.min(rows.length,12);i++){
+    const cells=rows[i].map(x=>norm(x).toLowerCase());
+    if(cells.some(x=>x==='pdv'||x.includes('punto vendita')) && cells.some(x=>x.includes('servizio'))) return i;
+  }
+  return 2;
+}
+async function loadFile(file){
+  try{
+    meta.textContent='Lettura del file in corso…';
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data,{type:'array'});
+    const stores = new Map();
+
+    wb.SheetNames.forEach(sheetName=>{
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+      if(!rows.length) return;
+      const hi = findHeader(rows);
+      const headers = rows[hi].map(x=>norm(x).toLowerCase());
+      const pdvI = headers.findIndex(x=>x==='pdv'||x.includes('punto vendita'));
+      const servI = headers.findIndex(x=>x.includes('servizio'));
+      const targetI = headers.findIndex(x=>x.includes('target giornaliero'));
+      const premioI = headers.findIndex(x=>x.includes('premio giornaliero'));
+      if(pdvI<0 || servI<0 || targetI<0 || premioI<0) return;
+
+      rows.slice(hi+1).forEach(r=>{
+        const pdv=norm(r[pdvI]), service=serviceName(r[servI]);
+        if(!pdv || !service) return;
+        if(!stores.has(pdv)) stores.set(pdv,{name:pdv,area:sheetName.toUpperCase(),items:{}});
+        stores.get(pdv).items[service]={target:num(r[targetI]),premio:money(r[premioI])};
+      });
+    });
+
+    STORES=[...stores.values()].map(s=>{
+      ['sim','fibra','b2b'].forEach(k=>s.items[k] ??= {target:'-',premio:0});
+      return s;
+    }).sort((a,b)=>a.area.localeCompare(b.area)||a.name.localeCompare(b.name));
+
+    if(!STORES.length) throw new Error('Non ho trovato le colonne PDV, Servizio, Target Giornaliero e Premio Giornaliero.');
+
+    meta.textContent=`${file.name} · ${STORES.length} presidi caricati · ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`;
+    populateAreas();
+    toolbar.classList.add('show');
+    render();
+  }catch(err){
+    STORES=[];
+    grid.innerHTML='';
+    toolbar.classList.remove('show');
+    meta.textContent='Errore: '+err.message;
+  }
+}
+function populateAreas(){
+  const areas=[...new Set(STORES.map(s=>s.area))].sort();
+  areaSelect.innerHTML='<option value="">Tutte le aree</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
+}
+function euro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(v)}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function render(){
+  grid.innerHTML=STORES.map((s,i)=>`
+    <article class="card" data-name="${esc(s.name.toLowerCase())}" data-area="${esc(s.area)}">
+      <div class="head"><div class="area">${esc(s.area)}</div><h2>${esc(s.name)}</h2></div>
+      ${row('SIM',s.items.sim,'sim')}
+      ${row('FIBRA',s.items.fibra,'fibra')}
+      ${row('B2B',s.items.b2b,'b2b')}
+      <div class="actions">
+        <button class="btn" onclick="copyCard(${i},this)">Copia immagine</button>
+        <button class="btn wa" onclick="shareCard(${i},this)">Condividi</button>
+      </div>
+    </article>`).join('');
+  filterCards();
+}
+function row(label,item,cls){
+  return `<div class="row ${cls}"><span class="label">${label}</span><span class="target">${esc(item.target)}</span><span class="premio">${euro(item.premio)}</span></div>`;
+}
+function filterCards(){
+  const q=searchInput.value.toLowerCase().trim(), area=areaSelect.value;
+  let n=0;
+  [...grid.children].forEach(c=>{
+    const ok=c.dataset.name.includes(q)&&(!area||c.dataset.area===area);
+    c.style.display=ok?'block':'none'; if(ok)n++;
+  });
+  count.textContent=n+' presidi';
+}
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function fit(ctx,text,max,start,min){
+  for(let s=start;s>=min;s-=2){ctx.font=`700 ${s}px Arial`;if(ctx.measureText(text).width<=max)return s}return min;
+}
+function makeCanvas(s){
+  const scale=2,W=720,H=780,c=document.createElement('canvas');c.width=W*scale;c.height=H*scale;
+  const x=c.getContext('2d');x.scale(scale,scale);x.fillStyle='#f2f2f4';x.fillRect(0,0,W,H);
+  x.shadowColor='rgba(0,0,0,.16)';x.shadowBlur=24;x.shadowOffsetY=8;rr(x,45,45,630,690,28);x.fillStyle='#fff';x.fill();x.shadowColor='transparent';
+  x.fillStyle='#111';x.font='700 23px Arial';x.fillText('TARGET GIORNALIERO',85,105);
+  x.fillStyle='#777';x.font='700 17px Arial';x.fillText(s.area,85,143);
+  x.fillStyle='#111';const fs=fit(x,s.name,550,34,22);x.font=`700 ${fs}px Arial`;x.fillText(s.name,85,195);
+  const rows=[['SIM',s.items.sim,'#ddefd2'],['FIBRA',s.items.fibra,'#dfe6f7'],['B2B',s.items.b2b,'#dfb8f6']];
+  rows.forEach((r,i)=>{
+    const y=245+i*135;rr(x,85,y,550,105,18);x.fillStyle=r[2];x.fill();
+    x.fillStyle='#111';x.font='800 25px Arial';x.fillText(r[0],115,y+62);
+    x.textAlign='center';x.font='900 44px Arial';x.fillText(String(r[1].target),390,y+69);
+    x.textAlign='right';x.font='800 27px Arial';x.fillText(euro(r[1].premio),605,y+65);x.textAlign='left';
+  });
+  x.fillStyle='#666';x.font='20px Arial';x.fillText('Target',335,687);x.textAlign='right';x.fillText('Premio',605,687);x.textAlign='left';
+  return c;
+}
+function blobFromCanvas(c){return new Promise(res=>c.toBlob(res,'image/png'))}
+function notify(t){toast.textContent=t;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800)}
+async function copyCard(i,btn){
+  const blob=await blobFromCanvas(makeCanvas(STORES[i]));
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    const old=btn.textContent;btn.textContent='Copiata ✓';notify('Immagine copiata');setTimeout(()=>btn.textContent=old,1400);
+  }catch(e){downloadBlob(blob,STORES[i].name);notify('Copia non disponibile: PNG scaricato')}
+}
+async function shareCard(i,btn){
+  const s=STORES[i],blob=await blobFromCanvas(makeCanvas(s));
+  const f=new File([blob],safeName(s.name)+'.png',{type:'image/png'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      await navigator.share({title:'Target '+s.name,text:'Target giornaliero '+s.name,files:[f]});
+    }else{
+      await copyCard(i,btn);
+      window.open('https://web.whatsapp.com/','_blank');
+    }
+  }catch(e){ if(e.name!=='AbortError') notify('Condivisione non disponibile') }
+}
+function safeName(s){return s.replace(/[^a-z0-9]+/gi,'_')}
+function downloadBlob(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safeName(name)+'_target.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+</script>
+</body>
+</html>
